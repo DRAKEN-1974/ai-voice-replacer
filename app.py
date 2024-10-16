@@ -1,18 +1,16 @@
 import streamlit as st
 from moviepy.editor import VideoFileClip, AudioFileClip
 import speech_recognition as sr
-import pyttsx3
 import tempfile
 from pydub import AudioSegment
+from gtts import gTTS
 import requests
 import json
+import os
 
 # Azure OpenAI API details
 AZURE_OPENAI_API_KEY = "22ec84421ec24230a3638d1b51e3a7dc"
 AZURE_OPENAI_ENDPOINT = "https://internshala.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-08-01-preview"
-
-# Initialize pyttsx3 for TTS
-engine = pyttsx3.init()
 
 def main():
     st.title("AI Voice Replacement for Video")
@@ -41,13 +39,16 @@ def main():
         corrected_transcription = correct_transcription_azure(transcription)
         st.write("Corrected Transcription:", corrected_transcription)
 
-        # Step 4: Generate AI voice using pyttsx3
+        # Step 4: Generate AI voice using gTTS and save as MP3
         generate_ai_audio(corrected_transcription)
 
-        # Step 5: Adjust the speed of the AI-generated audio to make it more smooth and natural
+        # Step 5: Convert generated MP3 to WAV
+        convert_mp3_to_wav("generated_audio.mp3", "generated_audio.wav")
+
+        # Step 6: Adjust the speed of the AI-generated audio to make it smoother and more natural
         adjusted_audio_path = adjust_audio_speed("generated_audio.wav")
 
-        # Step 6: Trim the video length to match the audio duration with smoother transition
+        # Step 7: Trim the video length to match the audio duration with smoother transition
         trim_video_to_audio(temp_video_file_path, adjusted_audio_path)
 
         st.success("Audio replaced successfully! You can download the final video now.")
@@ -92,17 +93,19 @@ def correct_transcription_azure(transcription):
         return transcription
 
 
-# Step 4: Generate AI voice using pyttsx3 (offline TTS)
+# Step 4: Generate AI voice using gTTS and save as MP3
 def generate_ai_audio(text):
-    engine.setProperty('rate', 140)  # Slightly slower for smoother speech
-    engine.setProperty('volume', 1)  # Maximum volume
-    
-    # Save the generated speech to a WAV file
-    engine.save_to_file(text, 'generated_audio.wav')
-    engine.runAndWait()
+    tts = gTTS(text=text, lang='en')
+    tts.save("generated_audio.mp3")
 
 
-# Step 5: Adjust audio speed to make it smoother and more natural
+# Step 5: Convert MP3 to WAV using pydub
+def convert_mp3_to_wav(input_mp3_path, output_wav_path):
+    sound = AudioSegment.from_mp3(input_mp3_path)
+    sound.export(output_wav_path, format="wav")
+
+
+# Step 6: Adjust audio speed to make it smoother and more natural
 def adjust_audio_speed(audio_file_path, target_speed=1.1):
     """Adjust the speed of the AI-generated audio more smoothly for a natural sound."""
     audio = AudioSegment.from_wav(audio_file_path)
@@ -117,7 +120,7 @@ def adjust_audio_speed(audio_file_path, target_speed=1.1):
     return adjusted_audio_path
 
 
-# Step 6: Trim the video to match the new audio duration with smoother transitions
+# Step 7: Trim the video to match the new audio duration with smoother transitions
 def trim_video_to_audio(video_file_path, audio_file_path):
     # Load the video and audio files
     video = VideoFileClip(video_file_path)
