@@ -3,10 +3,13 @@ from moviepy.editor import VideoFileClip, AudioFileClip
 import speech_recognition as sr
 import tempfile
 from pydub import AudioSegment
+from pydub.utils import which
 from gtts import gTTS
 import requests
-import json
 import os
+
+# Ensure pydub uses ffmpeg
+AudioSegment.converter = which("ffmpeg")
 
 # Azure OpenAI API details
 AZURE_OPENAI_API_KEY = "22ec84421ec24230a3638d1b51e3a7dc"
