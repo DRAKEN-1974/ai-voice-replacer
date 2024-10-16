@@ -6,6 +6,7 @@ from pydub import AudioSegment
 from pydub.utils import which
 from gtts import gTTS
 import requests
+import json
 import os
 
 # Ensure pydub uses ffmpeg
@@ -89,11 +90,18 @@ def correct_transcription_azure(transcription):
 
     try:
         response = requests.post(AZURE_OPENAI_ENDPOINT, headers=headers, data=json.dumps(data))
-        response.raise_for_status()
-        return response.json()["choices"][0]["message"]["content"]
-    except requests.exceptions.RequestException as e:
-        st.error(f"Error communicating with Azure OpenAI: {e}")
-        return transcription
+        response.raise_for_status()  # Raise an error for bad HTTP status codes
+        result = response.json()
+        st.write(f"Azure OpenAI Response: {result}")
+        return result['choices'][0]['message']['content']
+    except requests.exceptions.HTTPError as errh:
+        st.error(f"HTTP Error: {errh}")
+    except requests.exceptions.ConnectionError as errc:
+        st.error(f"Error Connecting: {errc}")
+    except requests.exceptions.Timeout as errt:
+        st.error(f"Timeout Error: {errt}")
+    except requests.exceptions.RequestException as err:
+        st.error(f"Request Error: {err}")
 
 
 # Step 4: Generate AI voice using gTTS and save as MP3
