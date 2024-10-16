@@ -2,5 +2,5 @@ streamlit
 moviepy
 pydub
 speechrecognition
-pyttsx3
+gtts
 requests
